@@ -42,9 +42,12 @@ export const handlers: { [method: string]: (socket: SocketClient, args: Json) =>
       move: game.move,
     });
     return {
-      expert_maze: game.expertMaze.jsonify(),
+      module_maze: game.moduleMaze.jsonify(),
       module_pos: game.modulePos,
       module_finish: game.moduleFinish,
+      expert_maze: game.expertMaze.jsonify(),
+      expert_pos: game.expertPos,
+      expert_finish: game.expertFinish,
       move: game.move,
     };
   },
@@ -72,7 +75,7 @@ export const handlers: { [method: string]: (socket: SocketClient, args: Json) =>
     if (game.move !== "module") throw new ClientError("not allowed to move");
     const success = game.makeAMove(true, dir);
     if (game.expert) game.expert.emit("module_moved", { game_id: game.id, move: game.move, strike: !success });
-    if (!success) throw new ClientError({ message: "moved into wall", move: game.move });
+    if (!success) throw new ClientError({ message: "moved into wall", direction, move: game.move });
     return { move: game.move, new_pos: game.modulePos };
   },
   expert_move: (socket, args) => {
@@ -86,7 +89,13 @@ export const handlers: { [method: string]: (socket: SocketClient, args: Json) =>
     if (game.expert !== socket) throw new ClientError("not allowed");
     if (game.move !== "expert") throw new ClientError("not allowed to move");
     const success = game.makeAMove(false, dir);
-    game.module.emit("expert_moved", { game_id: game.id, move: game.move, strike: !success });
+    game.module.emit("expert_moved", {
+      game_id: game.id,
+      move: game.move,
+      strike: !success,
+      direction,
+      new_expert_pos: game.expertPos,
+    });
     if (!success) throw new ClientError({ message: "moved into wall", move: game.move });
     return { move: game.move, new_pos: game.expertPos };
   },
